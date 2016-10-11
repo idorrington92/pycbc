@@ -19,6 +19,7 @@
 import argparse
 import logging
 import numpy
+import pycbc
 import pycbc.opt
 import pycbc.weave
 import random
@@ -115,11 +116,7 @@ scheme.verify_processing_options(opts, parser)
 pycbc.weave.verify_weave_options(opts, parser)
 
 # setup log
-if opts.verbose:
-    log_level = logging.DEBUG
-else:
-    log_level = logging.WARN
-logging.basicConfig(format="%(asctime)s : %(message)s", level=log_level)
+pycbc.init_logging(opts.verbose)
 
 # set the seed
 numpy.random.seed(opts.seed)

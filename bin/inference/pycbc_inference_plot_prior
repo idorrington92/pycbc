@@ -23,6 +23,7 @@ import logging
 import matplotlib as mpl; mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy
+import pycbc
 import sys
 from pycbc import inference, results
 from pycbc.workflow import WorkflowConfigParser
@@ -58,11 +59,7 @@ parser.add_argument("--verbose", action="store_true", default=False,
 opts = parser.parse_args()
 
 # setup log
-if opts.verbose:
-    log_level = logging.DEBUG
-else:
-    log_level = logging.WARN
-logging.basicConfig(format="%(asctime)s : %(message)s", level=log_level)
+pycbc.init_logging(opts.verbose)
 
 # read configuration file
 logging.info("Reading configuration files")

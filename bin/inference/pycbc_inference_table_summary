@@ -20,6 +20,7 @@ import argparse
 import h5py
 import logging
 import numpy
+import pycbc
 import sys
 from pycbc import results
 from pycbc.inference import option_utils
@@ -44,11 +45,7 @@ option_utils.add_inference_results_option_group(parser)
 opts = parser.parse_args()
 
 # setup log
-if opts.verbose:
-    log_level = logging.DEBUG
-else:
-    log_level = logging.WARN
-logging.basicConfig(format="%(asctime)s : %(message)s", level=log_level)
+pycbc.init_logging(opts.verbose)
 
 # load the results
 fp, parameters, labels, samples = option_utils.results_from_cli(opts,
