@@ -566,8 +566,10 @@ with ctx:
                 # (this uses the snr timeseries before the time delay, so we
                 # need to undo it. Same for normalisation). Use this to
                 # the reweighted SNR.
+                chisq = []
+                chisq_dof = []
                 for ifo in ifo_list:
-                    chisq, chisq_dof = power_chisq.values(
+                    chisq[ifo], chisq_dof[ifo] = power_chisq.values(
                         corr_dict[ifo],
                         coherent_ifo_triggers[ifo] / norm_dict[ifo],
                         norm_dict[ifo],
@@ -584,8 +586,8 @@ with ctx:
                         snr[ifo], coinc_idx+stilde[ifo].analyze.start,
                         template, stilde[ifo].psd, norm_dict[ifo],
                         stilde=stilde[ifo], low_frequency_cutoff=flow)
-                    ifo_out_vals['chisq'] = chisq
-                    ifo_out_vals['chisq_dof'] = chisq_dof
+                    ifo_out_vals['chisq'] = chisq[ifo]
+                    ifo_out_vals['chisq_dof'] = chisq_dof[ifo]
                     ifo_out_vals['time_index'] = coinc_idx_det_frame[ifo] + \
                         stilde[ifo].cumulative_index
                     ifo_out_vals['snr'] = coherent_ifo_triggers[ifo]
