@@ -542,6 +542,18 @@ with ctx:
                         logging.info("Max null SNR = %s" % str(max(null)))
                     logging.info("%s points above null threshold: "
                                 % str(len(null)))
+
+            # We define the network SNR to be the coherent SNR if it was 
+            # calculated, and the coincident SNR if it was not. 
+            if nifo>2:
+                network_snr = np.real(rho_coh)
+                null_snr = np.real(null)
+            elif nifo==2:
+                network_snr = np.real(rho_coinc)
+                null_snr = np.zeros(len(network_snr))
+            else:
+                network_snr = abs(snr[ifo_list[0]][coinc_idx])
+
             # We are now going to find the individual detector chi2 values.
             # To do this it is useful to find the indexes of coinc triggers
             # in the detector frame.
@@ -552,8 +564,17 @@ with ctx:
                                         for ifo in ifo_list}
                 # Calculate the power and autochi2 values for the coinc indexes
                 # (this uses the snr timeseries before the time delay, so we
-                # need to undo it. Same for normalisation)
+                # need to undo it. Same for normalisation). Use this to
+                # the reweighted SNR.
                 for ifo in ifo_list:
+                    chisq, chisq_dof = power_chisq.values(
+                        corr_dict[ifo],
+                        coherent_ifo_triggers[ifo] / norm_dict[ifo],
+                        norm_dict[ifo],
+                        stilde[ifo].psd,
+                        coinc_idx + stilde[ifo].analyze.start,
+                        template)
+
                     ifo_out_vals['bank_chisq'], ifo_out_vals['bank_chisq_dof'] =\
                         bank_chisq.values(template, stilde[ifo].psd, stilde[ifo],
                                          coherent_ifo_triggers[ifo] /
@@ -563,13 +584,8 @@ with ctx:
                         snr[ifo], coinc_idx+stilde[ifo].analyze.start,
                         template, stilde[ifo].psd, norm_dict[ifo],
                         stilde=stilde[ifo], low_frequency_cutoff=flow)
-                    ifo_out_vals['chisq'], ifo_out_vals['chisq_dof'] =\
-                        power_chisq.values(
-                            corr_dict[ifo],
-                            coherent_ifo_triggers[ifo] / norm_dict[ifo],
-                            norm_dict[ifo],
-                            stilde[ifo].psd,
-                            coinc_idx + stilde[ifo].analyze.start, template)
+                    ifo_out_vals['chisq'] = chisq
+                    ifo_out_vals['chisq_dof'] = chisq_dof
                     ifo_out_vals['time_index'] = coinc_idx_det_frame[ifo] + \
                         stilde[ifo].cumulative_index
                     ifo_out_vals['snr'] = coherent_ifo_triggers[ifo]
@@ -588,14 +604,10 @@ with ctx:
                             ifo_out_vals[key] = ifo_out_vals[key] * num_events
                     event_mgr.add_template_events_to_ifo(
                         ifo, ifo_names, [ifo_out_vals[n] for n in ifo_names])
-                if nifo>2:
-                    network_out_vals['network_snr'] = np.real(rho_coh)
-                    network_out_vals['null_snr'] = np.real(null)
-                elif nifo==2:
-                    network_out_vals['network_snr'] = np.real(rho_coinc)
-                else:
-                    network_out_vals['network_snr'] = \
-                        abs(snr[ifo_list[0]][coinc_idx])
+
+                # Save the network values.
+                network_out_vals['network_snr'] = network_snr
+                network_out_vals['null_snr'] = null_snr
                 network_out_vals['time_index'] = \
                     coinc_idx+stilde[ifo].cumulative_index
                 network_out_vals['nifo'] = [nifo]
