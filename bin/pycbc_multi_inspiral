@@ -141,6 +141,28 @@ logging.basicConfig(format='%(asctime)s : %(message)s', level=log_level)
 
 ctx = scheme.from_cli(opt)
 
+def network_chisq(chisq, chisq_dof, snr_dict):
+    ifos = snr_dict.keys()
+    chisq_per_dof = {ifo : chisq[ifo] / (2*chisq_dof[ifo] - 2) for ifo in ifos}
+    snr2 = {ifo : np.array(snr_dict[ifo]) *
+                np.array(snr_dict[ifo]).conj() for ifo in ifos}
+    coinc_snr2 = sum(snr2.values())
+    snr2_ratio = {ifo : snr2[ifo] / coinc_snr2 for ifo in ifos}
+    network_chisq = sum( np.array(chisq_per_dof.values()) *
+                    np.array(snr2_ratio.values()) )
+    return network_chisq
+
+def pycbc_reweight_snr(network_snr, network_chisq, a = 3, b = 1. / 6.):
+    """
+    Output: reweighted_snr: Reweighted SNR for each trigger
+    Input:  network_snr:  Dictoinary of coincident or coherent SNR for each
+                          trigger
+            network_chisq: A chisq value for each trigger 
+    """
+    denom = ((1 + network_chisq)**a) / 2
+    reweighted_snr = network_snr / denom**b
+    return reweighted_snr
+
 def reweight_snr(network_snr, snr_dict, chisq, chisq_dof):
     """
     Output: reweighted_snr: Reweighted SNR for each trigger
@@ -634,12 +656,14 @@ with ctx:
                         coinc_idx + stilde[ifo].analyze.start,
                         template)
 
+                # Calculate network chisq value
+                network_chisq = network_chisq(chisq, chisq_dof, coherent_ifo_triggers)
+
                 # Calculate chisq reweighted SNR
-                #network_snr = reweight_snr(network_snr,
-                #    coherent_ifo_triggers, chisq, chisq_dof)
+                network_snr = pycbc_reweight_snr(network_snr, network_chisq)
 
                 # Calculate null reweighted SNR
-                #network_snr = reweight_snr_by_null(network_snr, null_snr)
+                network_snr = reweight_snr_by_null(network_snr, null_snr)
 
                 # Save output values for individual ifos.
                 for ifo in ifo_list:
